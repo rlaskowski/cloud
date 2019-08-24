@@ -2,31 +2,56 @@ package main
 
 import (
 	"encoding/json"
+	"log"
+	"math/rand"
 	"net/http"
+	"sync"
+	"time"
 
 	"google.golang.org/appengine"
 )
 
-type User struct {
-	Name string
+type Numbers struct {
+	Number []int `json:"number"`
 }
 
 func main() {
 
-	http.HandleFunc("/", test)
+	http.HandleFunc("/select", select)
+	
 	appengine.Main()
-
+        
 }
 
-func test(w http.ResponseWriter, r *http.Request) {
+func select(w http.ResponseWriter, r *http.Request) {
 
-	var user = User{
-		Name: "Test",
-	}
+	var wg sync.WaitGroup
 
-	jsonFile, _ := json.Marshal(user)
+	wg.Add(1)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(jsonFile)
+	go func() {
+
+		defer wg.Done()
+
+		numbers := rand.Perm(50)
+		list := Numbers{}
+
+		for _, v := range numbers {
+
+			if len(list.Number) < 6 && v != 0 {
+				list.Number = append(list.Number, v)
+			}
+
+		}
+
+		json, _ := json.Marshal(list)
+
+		w.Write(json)
+
+		time.Sleep(10 * time.Millisecond)
+
+	}()
+
+	wg.Wait()
 
 }
