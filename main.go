@@ -2,28 +2,45 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"sync"
 	"time"
-
-	"google.golang.org/appengine"
 )
 
-type Numbers struct {
-	Number []int `json:"number"`
+type NumbersList struct {
+	Number []int
 }
 
 func main() {
 
-	http.HandleFunc("/select", select)
-	
-	appengine.Main()
-        
+	port := os.Getenv("PORT")
+
+	if port == "" {
+		port = "3000"
+		log.Printf("Default port: %s", port)
+	}
+
+	handler := http.NewServeMux()
+
+	handler.HandleFunc("/", ShowNumbers)
+
+	server := &http.Server{
+		Addr:         fmt.Sprintf(":%s", port),
+		Handler:      handler,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+
+	log.Printf("Listening on port: %s", port)
+	log.Fatal(server.ListenAndServe())
+
 }
 
-func select(w http.ResponseWriter, r *http.Request) {
+func ShowNumbers(w http.ResponseWriter, r *http.Request) {
 
 	var wg sync.WaitGroup
 
@@ -34,7 +51,7 @@ func select(w http.ResponseWriter, r *http.Request) {
 		defer wg.Done()
 
 		numbers := rand.Perm(50)
-		list := Numbers{}
+		list := NumbersList{}
 
 		for _, v := range numbers {
 
